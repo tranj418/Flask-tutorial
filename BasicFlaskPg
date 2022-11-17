@@ -15,5 +15,9 @@ def user(name):
 def admin():
     return redirect(url_for('home')) #By using the redirect and URL functions it will send the user back to the URL, in this case home, usually for authentication purposes
 
+@app.route('/admin/')
+def admin():
+    return redirect(url_for('user', name='admin!'))# redirecting it to the user page, and will pass in admin as the argument 
+
 if __name__ == '__main__':
     app.run()
