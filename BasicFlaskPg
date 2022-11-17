@@ -1,0 +1,19 @@
+from flask import Flask, redirect, url_for
+
+
+app = Flask(__name__) #has to be defined as this so it matches the IF statement below
+
+@app.route('/')#This is to set what follows after the fwd slash in the URL
+def home():
+    return 'Hello, this is the main page <h1>HELLO<h1>'
+
+@app.route('/<name>')  #By adding the arrows, it will take the value after the '/' in the  URL and use it as the argument, i.e. url/jim
+def user(name):
+    return f'Hello! {name}'
+
+@app.route('/admin')
+def admin():
+    return redirect(url_for('home')) #By using the redirect and URL functions it will send the user back to the URL, in this case home, usually for authentication purposes
+
+if __name__ == '__main__':
+    app.run()
