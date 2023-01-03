@@ -1,0 +1,42 @@
+-------------Python-------------
+from flask import Flask, render_template, redirect, url_for, request
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+#breakdown of code below
+#1 At the login site, there is an input form
+#2 At the login site, you enter in text and then click submit
+#3 The submit btn on the login site when clicked runs the HTTP method POST
+#4 The code below checks that page for the POST method
+#5 If it is located then it will perform the following steps listed in the initial IF statement
+
+@app.route('/login', methods=['POST', 'GET'])#Methods=[''] specifying what HTTP methods you would like to use
+def login():
+    if request.method == 'POST':#On the login.html side, when submit is CLICKED a POST method is done
+        user = request.form['nm']
+        return redirect(url_for('user', usr=user))
+    else:
+        return render_template('login.html')
+
+@app.route('/<usr>')
+def user(usr):
+    return f'<h1>{usr}</h1>'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+    
+-------------HTML/Login------------------
+{% extends 'base.html' %}
+{% block title %}Login Page{% endblock %}
+
+{% block content %}
+<form action="#" method="post">
+    <p>name:</p>
+    <p><input type="text" name="nm"></p> <!--the nm is used for the dictionary key in Python-->
+    <p><input type="submit" value="submit"></p>
+</form>
+{% endblock %}
