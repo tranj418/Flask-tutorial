@@ -1,0 +1,50 @@
+-----------Python-------------
+from flask import Flask, render_template, redirect, url_for, request, session
+from datetime import timedelta
+
+
+app = Flask(__name__)
+
+#Secret key, used to decrypt data stored on the server
+app.secret_key = 'hello'
+
+#Specify how long you are storing the session data for even after browser is closed so when re-opening, user does NOT need to login again
+#args for timedelta can be mins, days, or etc.
+#Sessions should NORMALLY be temporary
+app.permanent_session_lifetime = timedelta(days=2)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+
+@app.route('/login', methods=['POST', 'GET'])#Methods=[''] specifying what HTTP methods you would like to use
+def login():
+    if request.method == 'POST':#On the login.html side, when submit is CLICKED a POST method is done
+        session.permanent = True #Session will stay open for as long as we have specified it above in ln 12
+        user = request.form['nm']
+        session["user"] = user #Will store data as a dictionary key, session data is DELETED when the browser is closed
+        return redirect(url_for('user'))
+    else:
+        if 'user' in session:
+            return redirect(url_for('user'))
+        return render_template('login.html')
+
+@app.route('/user')
+def user():
+    if "user" in session: #Checks to see if the key exists in session
+        user = session["user"]#If key exists then store that key value in the user variable
+        return f'<h1>{user}</h1>'
+    else:
+        return redirect(url_for('login'))
+
+
+#clear session
+@app.route('/logout')
+def logout():
+    session.pop('user', None)#Removes the user data from the dictionary stored in the SESSION
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
