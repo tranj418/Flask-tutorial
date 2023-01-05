@@ -1,0 +1,109 @@
+from flask import Flask, render_template, redirect, url_for, request, session, flash
+from datetime import timedelta
+from flask_sqlalchemy import SQLAlchemy
+app = Flask(__name__)
+app.app_context().push()
+
+
+#Secret key, used to decrypt data stored on the server
+app.secret_key = 'hello'
+
+#Specify how long you are storing the session data for even after browser is closed so when re-opening, user does NOT need to login again
+#args for timedelta can be mins, days, or etc.
+#Sessions should NORMALLY be temporary
+app.permanent_session_lifetime = timedelta(days=2)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.sqlite3' #users is the table name
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+#creating the rows and columns for the database table
+#2 columns, name and email
+class users(db.Model):#db.Model --->inheritance of a parent class, to give us access to certain methods
+    _id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column(db.String(100))#You do not need to define the name such as in the line above it, if there is no name spec it will use the var name
+    email = db.Column(db.String(100))
+
+    def __init__(self, name, email):
+        self.email = email
+        self.name = name
+
+@app.route('/view')
+def viewusers():
+    return render_template('view.html', values=users.query.all())#The query.all method is going to grab all the users stored in the db
+
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+
+
+@app.route('/login', methods=['POST', 'GET'])#Methods=[''] specifying what HTTP methods you would like to use
+def login():
+    if request.method == 'POST':#On the login.html side, when submit is CLICKED a POST method is done
+        session.permanent = True #Session will stay open for as long as we have specified it above in ln 12
+                                    #If you do not want it to follow the time period specified, set it to FALSE
+        user = request.form['nm']
+        session["user"] = user #Will store data as a dictionary key, session data is DELETED when the browser is closed
+
+
+        found_user = users.query.filter_by(name = user).first() #The users in the users.query is referencing the class .filter_by will perform a check for the column:name and see if it is similar to users in that table, then .first() will grab the FIRST entry
+        #found_user = users.query.filter_by(name = user).delete() #Uncomment to allow to be able to delete user(s)
+        for user in found_user:
+            user.delete()
+        
+        if found_user:
+            session['email'] = found_user.email
+        else:
+            usr = users(user, '')
+            db.session.add(usr) #add this user model to the db, no query needed
+            db.session.commit()
+
+
+
+        flash(f'Login successful, welcome {user}')
+        return redirect(url_for('user'))
+    else:
+        if 'user' in session:
+            flash('Already logged in!')
+            return redirect(url_for('user'))
+        return render_template('login.html')
+
+@app.route('/user', methods=['POST', 'GET'])
+def user():
+    email = None
+    if "user" in session: #Checks to see if the key exists in session
+        user = session["user"]#If key exists then store that key value in the user variable
+
+        if request.method == 'POST':
+            email = request.form['email']
+            session['email'] = email
+            found_user = users.query.filter_by(name = user).first()
+            found_user.email = email
+            db.session.commit()
+            flash('Email saved!')
+        else:
+            if 'email' in session:
+                email = session['email']
+
+        return render_template('user.html', email=email)
+    else:
+        flash('You are not logged in!')
+        return redirect(url_for('login'))
+
+
+#clear session
+@app.route('/logout')
+def logout():
+    if "user" in session: 
+        user = session["user"]
+        flash(f'You have been logged out {user}', 'info')
+    session.pop('user', None)#Removes the user data from the dictionary stored in the SESSION'
+    session.pop('email', None)
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    db.create_all()#this will create the database, if it does not already exist, has to be above the app.run
+    app.run(debug=True)
